@@ -18,6 +18,22 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Stripe checkout success and cancel callbacks
+Route::get('/payment-success', function () {
+    return response()->json([
+        'status' => true,
+        'message' => 'Payment successful! Your subscription is active.',
+        'session_id' => request('session_id')
+    ]);
+});
+
+Route::get('/payment-cancel', function () {
+    return response()->json([
+        'status' => false,
+        'message' => 'Payment was cancelled.'
+    ]);
+});
+
 require __DIR__ . '/auth.php';
 
 // custom route file

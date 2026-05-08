@@ -8,6 +8,7 @@ use App\Models\MonthlySubscription;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Cashier\Subscription;
 use App\Models\PaymentMethod;
+use Stripe\StripeClient;
 
 class SubscribeController extends Controller
 {
@@ -24,9 +25,7 @@ class SubscribeController extends Controller
         ]);
     }
 
-    /**
-     * 🔥 Subscribe to Plan
-     */
+   
     public function subscribe(Request $request)
     {
         $request->validate([
@@ -51,42 +50,72 @@ class SubscribeController extends Controller
             ], 422);
         }
 
-        $defaultPaymentMethod = $user->defaultPaymentMethod();
-        $paymentMethodId = $defaultPaymentMethod?->id;
-
-        if (! $paymentMethodId) {
-            $paymentMethodId = 'pm_card_visa';
-        }
-
         try {
-            // Create Stripe Customer
-            $user->createOrGetStripeCustomer();
+            $stripeSecret = config('services.stripe.secret') ?? env('STRIPE_SECRET');
 
-            // Create Subscription using plan stripe_price_id
-            $subscription = $user->newSubscription('default', $plan->stripe_price_id)
-                ->create($paymentMethodId);
+            if (! is_string($stripeSecret) || $stripeSecret === '') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Stripe secret key is not configured. Set STRIPE_SECRET in your .env or services.stripe.secret in config/services.php'
+                ], 500);
+            }
+
+            $stripe = new StripeClient($stripeSecret);
+
+            // Ensure Stripe customer exists for the user
+            if (! $user->stripe_id) {
+                $customer = $stripe->customers->create([
+                    'email' => $user->email,
+                    'name' => $user->name ?? null,
+                    'metadata' => [
+                        'user_id' => $user->id,
+                    ],
+                ]);
+
+                $user->stripe_id = $customer->id;
+                $user->save();
+            }
+
+            // Build success/cancel URLs (client should provide these in request if needed)
+            $successUrl = $request->input('success_url', env('APP_URL') . '/payment-success?session_id={CHECKOUT_SESSION_ID}');
+            $cancelUrl = $request->input('cancel_url', env('APP_URL') . '/payment-cancel');
+
+            // Create Stripe Checkout Session for subscription
+            $session = $stripe->checkout->sessions->create([
+                'customer' => $user->stripe_id,
+                'mode' => 'subscription',
+                'line_items' => [[
+                    'price' => $plan->stripe_price_id,
+                    'quantity' => 1,
+                ]],
+                'success_url' => $successUrl,
+                'cancel_url' => $cancelUrl,
+                'metadata' => [
+                    'user_id' => $user->id,
+                    'plan_id' => $plan->id,
+                ],
+            ]);
 
             return response()->json([
                 'status' => true,
-                'message' => 'Subscribed to ' . $plan->title,
+                'message' => 'Checkout session created',
                 'data' => [
                     'plan' => $plan->title,
                     'price' => $plan->price,
-                    'subscription' => $subscription
-                ]
+                    'checkout_url' => $session->url ?? $session->getUrl(),
+                    'session_id' => $session->id,
+                ],
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * 🔁 Change Plan (Upgrade/Downgrade)
-     */
+   
     public function changePlan(Request $request)
     {
         $request->validate([
@@ -120,9 +149,7 @@ class SubscribeController extends Controller
         }
     }
 
-    /**
-     * ❌ Cancel Subscription
-     */
+   
     public function cancel()
     {
         $user = request()->user();
@@ -150,9 +177,7 @@ class SubscribeController extends Controller
         }
     }
 
-    /**
-     * 📈 Subscription Status
-     */
+    
     public function status()
     {
         $user = request()->user();
@@ -176,4 +201,6 @@ class SubscribeController extends Controller
             ]
         ]);
     }
+
+    
 }

@@ -254,13 +254,18 @@
 
                          <ul class="nav nav-sm flex-column">
 
+                            {{--monthly subscribe plan --}}
+                              
+
+                                <li class="nav-item">
+                                    <a href="{{ route('admin.monthly_plan.index') }}"
+                                        class="nav-link {{ request()->routeIs('admin.monthly_plan.index') ? 'active' : '' }}">
+                                        All Monthly Plans
+                                    </a>
+                                </li>
+
                              {{-- Plan --}}
-                             <li class="nav-item">
-                                 <a href="{{ route('admin.subscribe_plan.create') }}"
-                                     class="nav-link {{ request()->routeIs('admin.subscribe_plan.create') ? 'active' : '' }}">
-                                     Add Plan
-                                 </a>
-                             </li>
+                             
 
                              <li class="nav-item">
                                  <a href="{{ route('admin.subscribe_plan.index') }}"
@@ -270,12 +275,7 @@
                              </li>
 
                              {{-- Scan --}}
-                             <li class="nav-item">
-                                 <a href="{{ route('admin.scan.create') }}"
-                                     class="nav-link {{ request()->routeIs('admin.scan.create') ? 'active' : '' }}">
-                                     Add Scan
-                                 </a>
-                             </li>
+                             
 
                              <li class="nav-item">
                                  <a href="{{ route('admin.scan.index') }}"
@@ -283,7 +283,6 @@
                                      All Scans
                                  </a>
                              </li>
-
                          </ul>
                      </div>
                  </li>

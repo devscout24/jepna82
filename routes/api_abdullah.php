@@ -4,13 +4,14 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SubscribeController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/register', [AuthController::class, 'register'])->name('api.register');
-Route::post('/login', [AuthController::class, 'login'])->name('api.login');
+Route::post('user/register', [AuthController::class, 'register'])->name('api.register');
+Route::post('user/login', [AuthController::class, 'login'])->name('api.login');
+
 
 Route::middleware('auth:api')->group(function () {
-	Route::get('/me', [AuthController::class, 'me'])->name('api.me');
-	Route::post('/logout', [AuthController::class, 'logout'])->name('api.logout');
-	Route::post('/refresh', [AuthController::class, 'refresh'])->name('api.refresh');
+	Route::get('user/me', [AuthController::class, 'me'])->name('api.me');
+	Route::post('user/logout', [AuthController::class, 'logout'])->name('api.logout');
+	Route::post('user/refresh', [AuthController::class, 'refresh'])->name('api.refresh');
 });
 
 Route::middleware('auth:api')->group(function () {

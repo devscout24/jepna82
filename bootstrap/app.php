@@ -15,5 +15,28 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (Throwable $e, \Illuminate\Http\Request $request) {
+            // Return JSON for API requests
+            if ($request->is('api/*')) {
+                if ($e instanceof \Illuminate\Validation\ValidationException) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Validation failed',
+                        'errors' => $e->errors(),
+                    ], 422);
+                }
+
+                if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Unauthenticated',
+                    ], 401);
+                }
+
+                return response()->json([
+                    'status' => false,
+                    'message' => $e->getMessage() ?? 'An error occurred',
+                ], 500);
+            }
+        });
     })->create();

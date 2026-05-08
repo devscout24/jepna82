@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend\Abdullah;
 
 use App\Http\Controllers\Controller;
 use App\Models\File;
+use App\Models\Scan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File as FileFacade;
 use Yajra\Datatables\Datatables;
@@ -27,7 +28,6 @@ class FileController extends Controller
                 ->addColumn('action', function ($row) {
                     $editUrl = route('admin.file.edit', $row->id);
                     $deleteUrl = route('admin.file.destroy', $row->id);
-
                     return '
                     <a href="' . $editUrl . '" class="btn btn-sm btn-primary me-1">
                         <i class="fa-regular fa-pen-to-square"></i>
@@ -111,4 +111,6 @@ class FileController extends Controller
 
         return redirect()->route('admin.file.index')->with('success', 'File deleted successfully.');
     }
+
+ 
 }
