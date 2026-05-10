@@ -9,7 +9,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use App\Rules\NotDisposable;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 
 class AuthController extends Controller
 {
@@ -18,7 +21,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
             'username' => ['nullable', 'string', 'max:255', 'unique:users,username'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'string', 'email', 'unique:users,email', new NotDisposable],
             'phone' => ['nullable', 'string', 'max:255', 'unique:users,phone'],
             'password' => ['required', 'string', 'min:8'],
         ]);
@@ -33,31 +36,50 @@ class AuthController extends Controller
             'status' => 1,
         ]);
 
-        $token = Auth::guard('api')->login($user);
+        // Send verification email link
+        $user->sendEmailVerificationNotification();
 
-        return $this->respondWithToken($token, $user, 'Registered successfully.');
+        // Generate manual link for testing (Postman only)
+        $verificationUrl = url('/api/user/verify-email/' . $user->id . '/' . sha1($user->email));
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Account created! Please verify your email.',
+            // 'verification_link' => $verificationUrl, // এটি টেস্টিং এর জন্য দেওয়া হলো
+            'user' => $user
+        ]);
     }
 
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
+            'email' => ['required', 'string', 'email', 'exists:users,email'],
             'password' => ['required', 'string'],
+        ], [
+            'email.exists' => 'This email is not registered.'
         ]);
 
         $token = Auth::guard('api')->attempt($credentials);
 
-        if (! $token) {
+        if (!$token) {
             throw ValidationException::withMessages([
-                'email' => ['These credentials do not match our records.'],
+                'password' => ['Incorrect password.'],
             ]);
         }
 
         $user = Auth::guard('api')->user();
 
-        if (! $user || (int) $user->status !== 1) {
+        // Check if email is verified
+        if (!$user->hasVerifiedEmail()) {
             Auth::guard('api')->logout();
+            return response()->json([
+                'status' => false,
+                'message' => 'Please verify your email address before logging in.'
+            ], 403);
+        }
 
+        if ((int) $user->status !== 1) {
+            Auth::guard('api')->logout();
             return response()->json([
                 'status' => false,
                 'message' => 'Account is inactive.'
@@ -65,6 +87,39 @@ class AuthController extends Controller
         }
 
         return $this->respondWithToken($token, $user, 'Login successful.');
+    }
+
+    public function verifyEmail(Request $request, $id, $hash): JsonResponse
+    {
+        $user = User::findOrFail($id);
+
+        if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            return response()->json(['status' => false, 'message' => 'Invalid verification link.'], 400);
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(['status' => true, 'message' => 'Email already verified.']);
+        }
+
+        if ($user->markEmailAsVerified()) {
+            event(new \Illuminate\Auth\Events\Verified($user));
+        }
+
+        return response()->json(['status' => true, 'message' => 'Email verified successfully! You can now login.']);
+    }
+
+    public function resendVerification(Request $request): JsonResponse
+    {
+        $request->validate(['email' => 'required|email|exists:users,email']);
+        $user = User::where('email', $request->email)->first();
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(['status' => false, 'message' => 'Email already verified.']);
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return response()->json(['status' => true, 'message' => 'Verification link sent to your email.']);
     }
 
     public function me(Request $request): JsonResponse

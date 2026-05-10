@@ -11,12 +11,14 @@
     "require": {
         "php": "^8.2",
         "intervention/image": "^2.7",
-        "laravel/cashier": "^16.5",
+        "laravel/ai": "^0.6.7",
+        "laravel/cashier": "^16.0",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
+        "propaganistas/laravel-disposable-email": "^2.4",
         "tymon/jwt-auth": "^2.2",
-        "yajra/laravel-datatables-oracle": "^12"
+        "yajra/laravel-datatables-oracle": "^12.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

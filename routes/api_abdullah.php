@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('user/register', [AuthController::class, 'register'])->name('api.register');
 Route::post('user/login', [AuthController::class, 'login'])->name('api.login');
+Route::get('user/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
+Route::post('user/resend-verification', [AuthController::class, 'resendVerification'])->name('verification.resend');
 
 
 Route::middleware('auth:api')->group(function () {
@@ -26,4 +28,3 @@ Route::middleware('auth:api')->group(function () {
 
 
 Route::post('/stripe/webhook', [\Laravel\Cashier\Http\Controllers\WebhookController::class, '__invoke']);
- 
