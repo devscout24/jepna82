@@ -30,15 +30,15 @@ class BannerController extends Controller
                     return strip_tags($row->description ?? '');
                 })
 
-                // BUTTON TEXT
-                ->addColumn('button_text', function ($row) {
-                    return $row->button_text ?? '';
-                })
+                // // BUTTON TEXT
+                // ->addColumn('button_text', function ($row) {
+                //     return $row->button_text ?? '';
+                // })
 
                 // ICONS
                 ->addColumn('icons', function ($row) {
                     $icons = is_array($row->icon) ? $row->icon : [];
-                    $titles = is_array($row->icon_title) ? $row->icon_title : [];
+                    // $titles = is_array($row->icon_title) ? $row->icon_title : [];
 
                     if (empty($icons)) {
                         return '<span class="text-muted">No icons</span>';

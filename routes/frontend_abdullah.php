@@ -7,6 +7,7 @@ use App\Http\Controllers\Backend\Abdullah\WorkController;
 use App\Http\Controllers\Backend\Abdullah\FileController;
 use App\Http\Controllers\Backend\Abdullah\ScanController;
 use App\Http\Controllers\Backend\Abdullah\SubscribePlanController;
+use App\Http\Controllers\Backend\Abdullah\PackageAndSubscriptionController;
 use App\Http\Controllers\MonthlySubscriptionController;
 use Illuminate\Support\Facades\Route;
 
@@ -81,3 +82,11 @@ Route::post('/admin/monthly_plan/store', [MonthlySubscriptionController::class, 
 Route::get('/admin/monthly_plan/edit/{id}', [MonthlySubscriptionController::class, 'edit'])->name('admin.monthly_plan.edit');
 Route::put('/admin/monthly_plan/update/{id}', [MonthlySubscriptionController::class, 'update'])->name('admin.monthly_plan.update');
 Route::delete('/admin/monthly_plan/destroy/{id}', [MonthlySubscriptionController::class, 'destroy'])->name('admin.monthly_plan.destroy');
+
+// package and subscriptions routes
+Route::get('/admin/packages/index', [PackageAndSubscriptionController::class, 'index'])->name('admin.packages.index');
+Route::get('/admin/packages/create', [PackageAndSubscriptionController::class, 'create'])->name('admin.packages.create');
+Route::post('/admin/packages/store', [PackageAndSubscriptionController::class, 'store'])->name('admin.packages.store');
+Route::get('/admin/packages/edit/{id}', [PackageAndSubscriptionController::class, 'edit'])->name('admin.packages.edit');
+Route::put('/admin/packages/update/{id}', [PackageAndSubscriptionController::class, 'update'])->name('admin.packages.update');
+Route::delete('/admin/packages/destroy/{id}', [PackageAndSubscriptionController::class, 'destroy'])->name('admin.packages.destroy');

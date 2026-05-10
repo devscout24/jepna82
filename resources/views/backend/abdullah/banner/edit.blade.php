@@ -40,10 +40,10 @@
                         @endif
                     </div>
 
-                    <div class="mb-3">
+                    {{-- <div class="mb-3">
                         <label>Button Text</label>
                         <input type="text" name="button_text" class="form-control" value="{{ old('button_text', $banner->button_text) }}">
-                    </div>
+                    </div> --}}
 
                     <div class="mb-3">
                         <label>Icons</label>

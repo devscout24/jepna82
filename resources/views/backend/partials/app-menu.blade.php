@@ -236,6 +236,55 @@
                      </div>
                  </li>
 
+                 {{-- work --}}
+                    <li class="nav-item">
+                        <a class="nav-link menu-link {{ request()->routeIs('admin.works.*') ? '' : 'collapsed' }}"
+                            href="#sidebarWork" data-bs-toggle="collapse" role="button"
+                            aria-expanded="{{ request()->routeIs('admin.works.*') ? 'true' : 'false' }}"
+                            aria-controls="sidebarWork">
+                            <i class="ri-briefcase-line"></i> <span>Work</span>
+                        </a>
+                        <div class="collapse menu-dropdown {{ request()->routeIs('admin.works.*') ? 'show' : '' }}"
+                            id="sidebarWork">
+                            <ul class="nav nav-sm flex-column">
+                                <li class="nav-item">
+                                    <a href="{{ route('admin.work.create') }}"
+                                        class="nav-link {{ request()->routeIs('admin.works.create') ? 'active' : '' }}">
+                                        Add Work
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('admin.work.index') }}"
+                                        class="nav-link {{ request()->routeIs('admin.works.index') ? 'active' : '' }}">
+                                        All Works
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
+
+                    {{-- package and subscribe plan --}}
+                    <li class="nav-item">
+                        <a class="nav-link menu-link {{ request()->routeIs('admin.packages.*') ? '' : 'collapsed' }}"
+                            href="#sidebarPackage" data-bs-toggle="collapse" role="button"
+                            aria-expanded="{{ request()->routeIs('admin.packages.*') ? 'true' : 'false' }}"
+                            aria-controls="sidebarPackage">
+                            <i class="ri-price-tag-line"></i> <span>Package</span>
+                        </a>
+                        <div class="collapse menu-dropdown {{ request()->routeIs('admin.packages.*') ? 'show' : '' }}"
+                            id="sidebarPackage">
+                            <ul class="nav nav-sm flex-column">
+                                <li class="nav-item">
+                                    <a href="{{ route('admin.packages.index') }}"
+                                        class="nav-link {{ request()->routeIs('admin.packages.index') ? 'active' : '' }}">
+                                        All Packages
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+
 
 
 

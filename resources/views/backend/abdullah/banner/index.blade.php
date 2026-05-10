@@ -37,7 +37,7 @@
 								<th>#</th>
 								<th>Title</th>
 								<th>Description</th>
-								<th>Button Text</th>
+								{{-- <th>Button Text</th> --}}
 								<th>Icons</th>
 								<th>Icon Titles</th>
 								<th>Action</th>
@@ -75,12 +75,12 @@
 						orderable: false,
 						searchable: false
 					},
-					{
-						data: 'button_text',
-						name: 'button_text',
-						orderable: false,
-						searchable: false
-					},
+					// {
+					// 	data: 'button_text',
+					// 	name: 'button_text',
+					// 	orderable: false,
+					// 	searchable: false
+					// },
 					{
 						data: 'icons',
 						name: 'icons',
