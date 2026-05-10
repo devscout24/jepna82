@@ -53,12 +53,12 @@
 
                             <div class="row">
                                 <div class="col-md-4 mb-3">
-                                    <label class="form-label">Scan Credits</label>
-                                    <input type="number" name="scan_credits" class="form-control" value="{{ old('scan_credits', 0) }}">
+                                    <label class="form-label">Page Limit</label>
+                                    <input type="number" name="page_limit" class="form-control" value="{{ old('page_limit', 0) }}">
                                 </div>
                                 <div class="col-md-4 mb-3">
-                                    <label class="form-label">Max Pages Per Scan</label>
-                                    <input type="number" name="max_pages_per_scan" class="form-control" value="{{ old('max_pages_per_scan', 10) }}">
+                                    <label class="form-label">Extra Page Rate</label>
+                                    <input type="number" step="0.0001" name="extra_page_rate" class="form-control" value="{{ old('extra_page_rate', 0.0000) }}">
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Billing Cycle</label>

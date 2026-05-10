@@ -15,8 +15,7 @@ class PackageAndSubscription extends Model
         'discount_percentage',
         'final_price',
         'currency',
-        'scan_credits',
-        'max_pages_per_scan',
+        'page_limit',
         'extra_page_rate',
         'features',
         'package_type',
@@ -40,8 +39,7 @@ class PackageAndSubscription extends Model
         'is_popular' => 'boolean',
         'status' => 'integer',
         'sort_order' => 'integer',
-        'scan_credits' => 'integer',
-        'max_pages_per_scan' => 'integer',
+        'page_limit' => 'integer',
         'trial_days' => 'integer',
     ];
 }
