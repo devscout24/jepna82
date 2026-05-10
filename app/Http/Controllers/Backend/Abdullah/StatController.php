@@ -61,7 +61,7 @@ class StatController extends Controller
     {
         $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
             'icon' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
         ]);
 
@@ -98,7 +98,7 @@ class StatController extends Controller
 
         $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
             'icon' => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
         ]);
 
