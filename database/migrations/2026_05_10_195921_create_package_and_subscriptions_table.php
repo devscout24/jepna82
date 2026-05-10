@@ -24,9 +24,9 @@ return new class extends Migration
             $table->decimal('final_price', 10, 2)->default(0);
             $table->string('currency', 10)->default('USD');
 
-            $table->integer('scan_credits')->default(0)->comment('how many scans this plan provides: 0 = unlimited (not used), 1/5/10/15/30');
-            $table->integer('max_pages_per_scan')->default(10)->comment('max pages allowed per single scan');
-            $table->decimal('extra_page_rate', 10, 4)->default(0.00)->comment('charge per extra page beyond max_pages_per_scan');
+            $table->integer('page_limit')->default(0);
+            
+            $table->decimal('extra_page_rate', 10, 4)->default(0.00)->comment('charge per extra page beyond page_limit');
 
             $table->json('features')->nullable()->comment('array of feature strings for pricing card');
 

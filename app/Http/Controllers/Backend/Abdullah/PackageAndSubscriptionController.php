@@ -37,12 +37,9 @@ class PackageAndSubscriptionController extends Controller
                     <a href="' . $editUrl . '" class="btn btn-sm btn-primary me-1">
                         <i class="fa-regular fa-pen-to-square"></i>
                     </a>
-                    <form action="' . $deleteUrl . '" method="POST" style="display:inline-block;">
-                        ' . csrf_field() . method_field('DELETE') . '
-                        <button type="submit" class="btn btn-sm btn-danger delete-button" onclick="return confirm(\'Are you sure?\')">
-                            <i class="fa-regular fa-trash-can"></i>
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-sm btn-danger delete-button" data-id="' . $row->id . '" data-url="' . $deleteUrl . '">
+                        <i class="fa-regular fa-trash-can"></i>
+                    </button>
                     ';
                 })
                 ->rawColumns(['status', 'action'])
@@ -66,8 +63,7 @@ class PackageAndSubscriptionController extends Controller
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'final_price' => 'required|numeric|min:0',
             'currency' => 'nullable|string|max:10',
-            'scan_credits' => 'nullable|integer|min:0',
-            'max_pages_per_scan' => 'nullable|integer|min:1',
+            'page_limit' => 'nullable|integer|min:0',
             'billing_cycle' => 'nullable|string|in:one_time,monthly,yearly,lifetime',
         ]);
 
@@ -76,6 +72,13 @@ class PackageAndSubscriptionController extends Controller
         $data['features'] = $request->features ? explode("\n", str_replace("\r", "", $request->features)) : [];
 
         PackageAndSubscription::create($data);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Package created successfully.'
+            ]);
+        }
 
         return redirect()->route('admin.packages.index')->with('success', 'Package created successfully.');
     }
@@ -95,8 +98,7 @@ class PackageAndSubscriptionController extends Controller
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'final_price' => 'required|numeric|min:0',
             'currency' => 'nullable|string|max:10',
-            'scan_credits' => 'nullable|integer|min:0',
-            'max_pages_per_scan' => 'nullable|integer|min:1',
+            'page_limit' => 'nullable|integer|min:0',
             'billing_cycle' => 'nullable|string|in:one_time,monthly,yearly,lifetime',
         ]);
 
@@ -106,6 +108,13 @@ class PackageAndSubscriptionController extends Controller
 
         $package->update($data);
 
+        if ($request->ajax()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Package updated successfully.'
+            ]);
+        }
+
         return redirect()->route('admin.packages.index')->with('success', 'Package updated successfully.');
     }
 
@@ -113,6 +122,13 @@ class PackageAndSubscriptionController extends Controller
     {
         $package = PackageAndSubscription::findOrFail($id);
         $package->delete();
+
+        if (request()->ajax()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Package deleted successfully.'
+            ]);
+        }
 
         return redirect()->route('admin.packages.index')->with('success', 'Package deleted successfully.');
     }
