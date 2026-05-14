@@ -20,13 +20,13 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('avatar')->nullable();
-            // optional fields start ---
-            // $table->string('otp', 10)->nullable();
-            // $table->timestamp('otp_expired_at')->nullable();
-            // $table->timestamp('otp_verified_at')->nullable();
-            // $table->string('password_reset_token')->nullable();
-            // $table->timestamp('password_reset_token_expires_at')->nullable();
-            // optional fields end ---
+
+            $table->string('otp', 10)->nullable();
+            $table->timestamp('otp_expires_at')->nullable();
+            $table->timestamp('otp_verified_at')->nullable();
+            $table->string('password_reset_token')->nullable();
+            $table->timestamp('password_reset_token_expires_at')->nullable();
+         
             $table->tinyInteger('role')->default(0)->comment('1 = Admin, 0 = User');
             $table->tinyInteger('status')->default(1)->comment('1 = Active, 0 = Inactive');
             $table->rememberToken();

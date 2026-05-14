@@ -17,28 +17,34 @@ class StripeSettingController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'stripe_public_key' => 'required|string|max:255',
-            'stripe_secret_key' => 'required|string|max:255',
+            'stripe_key' => 'required|string|max:255',
+            'stripe_secret' => 'required|string|max:255',
+            'stripe_webhook_secret' => 'nullable|string|max:255',
         ]);
 
         try {
             $envPath = base_path('.env');
             $envContent = File::get($envPath);
-            $lineBreak = "\n";
 
-            $envContent = preg_replace([
-                '/STRIPE_PUBLIC_KEY=(.*)\s?/',
-                '/STRIPE_SECRET_KEY=(.*)\s?/',
-            ], [
-                'STRIPE_PUBLIC_KEY=' . $request->stripe_public_key . $lineBreak,
-                'STRIPE_SECRET_KEY=' . $request->stripe_secret_key . $lineBreak,
-            ], $envContent);
+            $data = [
+                'STRIPE_KEY' => $request->stripe_key,
+                'STRIPE_SECRET' => $request->stripe_secret,
+                'STRIPE_WEBHOOK_SECRET' => $request->stripe_webhook_secret,
+            ];
+
+            foreach ($data as $key => $value) {
+                if (preg_match("/^{$key}=/m", $envContent)) {
+                    $envContent = preg_replace("/^{$key}=.*/m", "{$key}=\"{$value}\"", $envContent);
+                } else {
+                    $envContent .= "\n{$key}=\"{$value}\"";
+                }
+            }
 
             File::put($envPath, $envContent);
 
             return back()->with('success', 'Stripe settings updated successfully!');
         } catch (Exception $e) {
-            return back()->with('error', 'Failed to update Stripe settings.');
+            return back()->with('error', 'Failed to update Stripe settings: ' . $e->getMessage());
         }
     }
 }

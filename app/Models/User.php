@@ -11,10 +11,7 @@ use Laravel\Cashier\Billable;
 
 class User extends Authenticatable implements JWTSubject, MustVerifyEmail
 {
-    use Billable;
-
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use Billable, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -55,6 +52,47 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
             'status' => 'integer',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Get all of the subscriptions for the User
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function subscriptions()
+    {
+        return $this->hasMany(UserSubscription::class);
+    }
+
+    /**
+     * Get all of the wallets for the User
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function wallets()
+    {
+        return $this->hasMany(UserWalet::class);
+    }
+
+    /**
+     * Update user credit balance and log in wallet
+     */
+    public function updateBalance($credits, $source, $packageId = null, $subscriptionId = null)
+    {
+        $lastWallet = UserWalet::where('user_id', $this->id)->latest()->first();
+        $prevBalance = $lastWallet ? $lastWallet->current_balance : 0;
+
+        return UserWalet::create([
+            'user_id' => $this->id,
+            'package_id' => $packageId,
+            'subscription_id' => $subscriptionId,
+            'type' => 'credit',
+            'source' => $source,
+            'credits' => $credits,
+            'previous_balance' => $prevBalance,
+            'current_balance' => $prevBalance + $credits,
+            'note' => "Credits updated via " . str_replace('_', ' ', $source),
+        ]);
     }
 
     // JWT Methods

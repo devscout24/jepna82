@@ -17,6 +17,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "propaganistas/laravel-disposable-email": "^2.4",
+        "smalot/pdfparser": "^2.12",
         "tymon/jwt-auth": "^2.2",
         "yajra/laravel-datatables-oracle": "^12.0"
     },

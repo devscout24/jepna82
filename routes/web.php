@@ -19,20 +19,14 @@ Route::middleware('auth')->group(function () {
 });
 
 // Stripe checkout success and cancel callbacks
-Route::get('/payment-success', function () {
-    return response()->json([
-        'status' => true,
-        'message' => 'Payment successful! Your subscription is active.',
-        'session_id' => request('session_id')
-    ]);
-});
+use App\Http\Controllers\PaymentController;
 
-Route::get('/payment-cancel', function () {
-    return response()->json([
-        'status' => false,
-        'message' => 'Payment was cancelled.'
-    ]);
-});
+Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
+Route::get('/payment/cancel', [PaymentController::class, 'cancel'])->name('payment.cancel');
+
+// Keep old routes for backward compatibility if needed, but pointing to the new controller
+Route::get('/payment-success', [PaymentController::class, 'success']);
+Route::get('/payment-cancel', [PaymentController::class, 'cancel']);
 
 require __DIR__ . '/auth.php';
 

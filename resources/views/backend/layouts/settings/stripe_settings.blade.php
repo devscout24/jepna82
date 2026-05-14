@@ -29,19 +29,28 @@
                         @csrf
 
                         <div class="form-group mb-3">
-                            <label for="stripe_public_key" class="form-label">Stripe Public Key</label>
-                            <input type="text" name="stripe_public_key" id="stripe_public_key" class="form-control @error('stripe_public_key') is-invalid @enderror"
-                                value="{{ env('STRIPE_PUBLIC_KEY') }}" placeholder="Enter Stripe Public Key" required>
-                            @error('stripe_public_key')
+                            <label for="stripe_key" class="form-label">Stripe Public Key (STRIPE_KEY)</label>
+                            <input type="text" name="stripe_key" id="stripe_key" class="form-control @error('stripe_key') is-invalid @enderror"
+                                value="{{ env('STRIPE_KEY') }}" placeholder="Enter Stripe Public Key" required>
+                            @error('stripe_key')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
                         </div>
 
                         <div class="form-group mb-3">
-                            <label for="stripe_secret_key" class="form-label">Stripe Secret Key</label>
-                            <input type="text" name="stripe_secret_key" id="stripe_secret_key" class="form-control @error('stripe_secret_key') is-invalid @enderror"
-                                value="{{ env('STRIPE_SECRET_KEY') }}" placeholder="Enter Stripe Secret Key" required>
-                            @error('stripe_secret_key')
+                            <label for="stripe_secret" class="form-label">Stripe Secret Key (STRIPE_SECRET)</label>
+                            <input type="text" name="stripe_secret" id="stripe_secret" class="form-control @error('stripe_secret') is-invalid @enderror"
+                                value="{{ env('STRIPE_SECRET') }}" placeholder="Enter Stripe Secret Key" required>
+                            @error('stripe_secret')
+                                <span class="invalid-feedback">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="stripe_webhook_secret" class="form-label">Stripe Webhook Secret (STRIPE_WEBHOOK_SECRET)</label>
+                            <input type="text" name="stripe_webhook_secret" id="stripe_webhook_secret" class="form-control @error('stripe_webhook_secret') is-invalid @enderror"
+                                value="{{ env('STRIPE_WEBHOOK_SECRET') }}" placeholder="Enter Stripe Webhook Secret">
+                            @error('stripe_webhook_secret')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
                         </div>

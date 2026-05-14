@@ -67,20 +67,57 @@ class PackageAndSubscriptionController extends Controller
             'billing_cycle' => 'nullable|string|in:one_time,monthly,yearly,lifetime',
         ]);
 
-        $data = $request->all();
-        $data['slug'] = Str::slug($request->title) . '-' . time();
-        $data['features'] = $request->features ? explode("\n", str_replace("\r", "", $request->features)) : [];
+        try {
+            $data = $request->all();
+            $data['slug'] = Str::slug($request->title) . '-' . time();
+            $data['features'] = $request->features ? explode("\n", str_replace("\r", "", $request->features)) : [];
 
-        PackageAndSubscription::create($data);
+            if ($request->package_type === 'subscription' && !empty($request->billing_cycle)) {
+                $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
 
-        if ($request->ajax()) {
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Package created successfully.'
-            ]);
+
+                $stripeProduct = $stripe->products->create([
+                    'name' => $request->title,
+                    'description' => $request->sub_title ?? $request->title,
+                    'metadata' => [
+                        'package_type' => $request->package_type,
+                    ],
+                ]);
+
+
+                $stripePrice = $stripe->prices->create([
+                    'unit_amount' => $request->final_price * 100,
+                    'currency' => strtolower($request->currency ?? 'usd'),
+                    'recurring' => [
+                        'interval' => $request->billing_cycle === 'yearly' ? 'year' : 'month',
+                    ],
+                    'product' => $stripeProduct->id,
+                ]);
+
+                $data['stripe_product_id'] = $stripeProduct->id;
+                $data['stripe_price_id'] = $stripePrice->id;
+            }
+
+            PackageAndSubscription::create($data);
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Package created successfully.'
+                ]);
+            }
+
+            return redirect()->route('admin.packages.index')->with('success', 'Package created successfully.');
+
+        } catch (\Exception $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to create package: ' . $e->getMessage()
+                ], 500);
+            }
+            return back()->with('error', 'Failed to create package: ' . $e->getMessage())->withInput();
         }
-
-        return redirect()->route('admin.packages.index')->with('success', 'Package created successfully.');
     }
 
     public function edit($id)

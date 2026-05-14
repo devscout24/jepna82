@@ -25,8 +25,8 @@ return new class extends Migration
             $table->string('currency', 10)->default('USD');
 
             $table->integer('page_limit')->default(0);
-            
-            $table->decimal('extra_page_rate', 10, 4)->default(0.00)->comment('charge per extra page beyond page_limit');
+
+            $table->decimal('extra_page_rate', 10, 4)->nullable()->comment('charge per extra page beyond page_limit');
 
             $table->json('features')->nullable()->comment('array of feature strings for pricing card');
 
