@@ -92,8 +92,7 @@ return new class extends Migration
     $table->text('note')
         ->nullable();
 
-    $table->timestamp('created_at')
-        ->useCurrent();
+     $table->timestamps();
 
     // Indexes
     $table->index('user_id');

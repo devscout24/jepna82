@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class UserWalet extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'user_id',
         'package_id',

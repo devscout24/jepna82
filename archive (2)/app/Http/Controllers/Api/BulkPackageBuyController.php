@@ -193,6 +193,10 @@ class BulkPackageBuyController extends Controller
                 $this->handleCheckoutSessionCompleted($event->data->object);
                 break;
 
+            case 'charge.succeeded':
+                // Optional: Handle charge.succeeded if needed
+                break;
+
             default:
                 Log::info("Unhandled Stripe event type: " . $event->type);
         }

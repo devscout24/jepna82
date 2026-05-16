@@ -365,19 +365,7 @@ class AuthController extends Controller
             if (Hash::check($request->current_password, $user->password)) {
                 $user->password = Hash::make($request->new_password);
                 $user->save();
-
-                $data = [
-                    'id' => $user->id,
-                    'first_name' => $user->name,
-                    'last_name' => $user->last_name,
-                    'image' => asset($user->profile_image),
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'address' => $user->address,
-                    'emaergency_contact_name' => $user->emaergency_contact_name,
-                    'emaergency_contact_number' => $user->emaergency_contact_number
-                ];
-                return $this->success($data, 'Password changed successfully');
+                return $this->success($user, 'Password changed successfully');
             }
             return $this->error([], ' Current password does not match', 401);
         } catch (\Exception $e) {
@@ -484,6 +472,58 @@ class AuthController extends Controller
     }
 
 
+   public function updateProfile(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'nullable|string|max:255',
 
+
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors());
+        }
+
+        try {
+            $user = Auth::guard('api')->user();
+
+            if ($request->hasFile('profile_image')) {
+                $image = $request->file('profile_image');
+                $imageName = time() . '_' . $image->getClientOriginalName();
+                $path="uploads/profile_images/";
+                $image->move(public_path($path), $imageName);
+                $user->profile_image = $path.$imageName;
+
+            }
+
+            if ($request->name) {
+                $user->name = $request->name;
+            }
+
+
+            $user->save();
+
+            return $this->success($user, 'Profile updated successfully');
+        } catch (\Exception $e) {
+            return $this->error([], $e->getMessage());
+        }
+    }
+
+    public function profile(Request $request)
+    {
+        try {
+            $user = Auth::guard('api')->user();
+            $data = [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'profile_image' => asset($user->profile_image),
+            ];
+            return $this->success($data, 'Profile fetched successfully');
+        } catch (\Exception $e) {
+            return $this->error([], $e->getMessage());
+        }
+    }
 
 }

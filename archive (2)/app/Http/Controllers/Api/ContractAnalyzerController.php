@@ -46,22 +46,45 @@ class ContractAnalyzerController extends Controller
             $billingMode = 'free';
 
             if ($currentBalance >= $totalPages) {
-                // If they have credits, always give them a FULL PRO scan
+                // If they have credits, identify if it's One Time Basic/Pro or general Credit (Bulk/Subscription)
                 $scanType = 'pro';
-                $billingMode = 'bulk'; // or subscription
+
+                $lastTransaction = WalletTransaction::query()->where('user_id', $user->id)
+                    ->whereIn('source', ['subscription_purchase', 'subscription_renewal', 'bulk_purchase', 'one_time_purchase', 'admin_grant'])
+                    ->latest()
+                    ->first();
+
+                if ($lastTransaction) {
+                    if ($lastTransaction->source === 'one_time_purchase') {
+                        // Check the actual package type from the associated package
+                        $package = PackageAndSubscription::query()->find($lastTransaction->package_id);
+                        if ($package && in_array($package->package_type, ['one_time_basic', 'one_time_pro'])) {
+                            $billingMode = $package->package_type; // Set to 'one_time_basic' or 'one_time_pro'
+                        } else {
+                            $billingMode = 'one_time';
+                        }
+                    } else {
+                        // For bulk or subscription, we just use a general 'credit' mode as requested
+                        $billingMode = 'credit';
+                    }
+                } else {
+                    $billingMode = 'credit'; // Fallback
+                }
             } else {
                 // Fetch dynamic limit from 'free_preview' package
-                $freePackage = PackageAndSubscription::where('package_type', 'free_preview')->first();
+                $freePackage = PackageAndSubscription::query()->where('package_type', 'free_preview')->first();
                 $freeLimit = $freePackage ? $freePackage->page_limit : 2; // Default to 2 if not found
 
                 // Check lifetime free limit
-                $completedScansCount = Contract::where('user_id', $user->id)
+                $completedScansCount = Contract::query()->where('user_id', $user->id)
                     ->whereIn('status', ['completed', 'preview_ready'])
                     ->count();
 
                 if ($completedScansCount >= $freeLimit) {
                     return $this->returnPaywallOnly($user);
                 }
+
+                $billingMode = 'free'; // Set billing mode to free
             }
 
             // 2. NOW store the file
@@ -118,9 +141,9 @@ class ContractAnalyzerController extends Controller
             'message' => 'You have exhausted your 2 free lifetime scans. Please upgrade to continue.',
             'data' => [
                 'options' => [
-                    'one_time' => PackageAndSubscription::whereIn('package_type', ['one_time_basic', 'one_time_pro'])->get(),
-                    'credit_packs' => PackageAndSubscription::where('package_type', 'bulk')->get(),
-                    'subscriptions' => PackageAndSubscription::where('package_type', 'subscription')->get()
+                    'one_time' => PackageAndSubscription::query()->whereIn('package_type', ['one_time_basic', 'one_time_pro'])->get(),
+                    'credit_packs' => PackageAndSubscription::query()->where('package_type', 'bulk')->get(),
+                    'subscriptions' => PackageAndSubscription::query()->where('package_type', 'subscription')->get()
                 ]
             ]
         ], 402);
@@ -129,41 +152,71 @@ class ContractAnalyzerController extends Controller
     /**
      * Get details for paywall (pricing, etc.) after partial result is ready.
      */
-    public function getPaywallData(Request $request, $contractId)
+    public function contractResult(Request $request, $contractId)
     {
-        $contract = Contract::where('user_id', Auth::id())->findOrFail($contractId);
+        $contract = Contract::query()->where('user_id', Auth::id())->findOrFail($contractId);
 
-        $oneTimePackages = PackageAndSubscription::whereIn('package_type', ['one_time_basic', 'one_time_pro'])->get();
+        // Ensure JSON columns are handled as arrays
+        $details = is_array($contract->contract_details) ? $contract->contract_details : json_decode((string)$contract->contract_details, true);
+        $risks = is_array($contract->risks) ? $contract->risks : json_decode((string)$contract->risks, true);
+        $summary = is_array($contract->summary) ? $contract->summary : json_decode((string)$contract->summary, true);
+        $fairness = is_array($contract->fairness) ? $contract->fairness : json_decode((string)$contract->fairness, true);
+        $key_clauses = is_array($contract->key_clauses) ? $contract->key_clauses : json_decode((string)$contract->key_clauses, true);
+        $risk_overview = is_array($contract->risk_overview) ? $contract->risk_overview : json_decode((string)$contract->risk_overview, true);
 
-        return $this->success([
-            'contract_id' => $contract->id,
-            'risk_score' => $contract->risk_score,
-            'risk_level' => $contract->risk_level,
-            'total_risks_found' => $contract->risk_count,
-            'hidden_risks_count' => max(0, $contract->risk_count - 2),
-
-            // Marketing & Urgency Wording from Client
-            'marketing' => [
-                'alert_banner' => '⚠️ Risk Preview Only — Critical issues detected. Unlock the full analysis before signing.',
-                'headline' => 'Don’t Sign Until You Know What This Contract Could Cost You',
-                'subheadline' => 'We found hidden risks, unfavorable terms, and potential financial exposure in this document. Unlock the full report to see exactly what they mean and what to do next.',
-                'urgency_line' => 'Knowledge now can prevent expensive mistakes later.',
-                'value_comparison' => 'Lawyer reviews can cost hundreds of dollars per hour. RiskShield AI helps you identify red flags instantly before deciding whether to seek professional advice.'
+        $result = [
+            'id' => $contract->id,
+            'contract_details' => [
+                'contract_title' => $contract->contract_title ?? $contract->original_filename,
+                'document_type' => $contract->document_type,
+                'parties_involved' => $details['parties'] ?? null,
+                'effective_date' => $details['effective_date'] ?? null,
+                'end_date' => $details['end_date'] ?? null,
+                'jurisdiction' => $details['jurisdiction_governing_law'] ?? null,
+                'renewal_terms' => $details['renewal_terms'] ?? null,
             ],
-
-            // Teasers for locked sections
-            'teasers' => [
-                ['title' => 'Negotiation Tips', 'teaser' => 'See exactly what to ask before signing.'],
-                ['title' => 'Financial Impact Analysis', 'teaser' => 'Understand where this contract could cost you money.'],
-                ['title' => 'Safer Clause Suggestions', 'teaser' => 'See suggested language to reduce your risk.'],
-                ['title' => 'Full Clause Breakdown', 'teaser' => 'Detailed analysis of every important term.']
+            'summary' => [
+                'text' => $contract->short_summary,
+                'key_points' => $summary['key_points'] ?? [],
             ],
+            'risk_score' => [
+                'score' => $contract->risk_score,
+                'level' => $contract->risk_level,
+                'explanation' => $risk_overview['explanation'] ?? ($contract->risk_score_explanation ?? ''),
+            ],
+            'fairness' => [
+                'score' => $contract->fairness_score,
+                'text' => $fairness['explanation'] ?? ($contract->fairness ?? null),
+            ],
+            'risks' => collect($risks)->map(function ($risk) use ($contract) {
+                return [
+                    'title' => $risk['title'] ?? '',
+                    'severity' => $risk['severity'] ?? '',
+                    'category' => $risk['category'] ?? '',
+                    'explanation' => $risk['explanation'] ?? '',
+                    'impact' => $risk['impact'] ?? '',
+                    'suggestion' => $risk['suggestion'] ?? '',
+                    'is_locked' => ($contract->is_full_unlocked == 0),
+                ];
+            }),
+            'key_clauses' => collect($key_clauses)->map(function ($clause, $type) {
+                return [
+                    'type' => is_numeric($type) ? ($clause['type'] ?? 'General') : $type,
+                    'text' => $clause['text'] ?? '',
+                    'explanation' => $clause['explanation'] ?? '',
+                ];
+            }),
+            'recommendations' => $contract->recommendations ?? [],
+            'action_items' => $contract->action_items ?? [],
+            'signature_details' => [
+                'status' => $contract->signature_details['status'] ?? 'Not Signed',
+                'signatories' => $contract->signature_details['signatories'] ?? [],
+            ],
+            'is_full_unlocked' => $contract->is_full_unlocked,
+            'billing_mode' => $contract->billing_mode,
+        ];
 
-            'pricing_options' => [
-                'one_time' => $oneTimePackages,
-                'credit_packs' => PackageAndSubscription::where('package_type', 'bulk')->get(),
-            ]
-        ]);
+        return $this->success($result, 'Analysis detail retrieved successfully.');
     }
 
     /**
@@ -171,7 +224,7 @@ class ContractAnalyzerController extends Controller
      */
     public function getAnalysisResult($id)
     {
-        $contract = Contract::where('user_id', Auth::id())->findOrFail($id);
+        $contract = Contract::query()->where('user_id', Auth::id())->findOrFail($id);
 
         if ($contract->status !== 'completed' && $contract->status !== 'preview_ready') {
             return $this->success([
@@ -267,7 +320,7 @@ class ContractAnalyzerController extends Controller
     {
         try {
             $user = Auth::guard('api')->user();
-            $contract = Contract::where('user_id', $user->id)->findOrFail($id);
+            $contract = Contract::query()->where('user_id', $user->id)->findOrFail($id);
 
             if ($contract->is_full_unlocked == 1) {
                 return $this->error('Already Unlocked', 'This contract is already fully unlocked.', 400);

@@ -120,6 +120,10 @@ class UserSubscriptionController extends Controller
                 $this->handleCheckoutSessionCompleted($event->data->object);
                 break;
 
+            case 'checkout.session.completed':
+                $this->handleCheckoutSessionCompleted($event->data->object);
+                break;
+
             case 'customer.subscription.updated':
                 $this->handleSubscriptionUpdated($event->data->object);
                 break;
@@ -274,14 +278,24 @@ class UserSubscriptionController extends Controller
 
     protected function calculateNextBillingDate($session)
     {
-        if (!$session->subscription) return null;
+        // Check if subscription ID exists and is not null
+        if (!isset($session->subscription) || empty($session->subscription)) {
+            return now()->addMonth()->toDateTimeString();
+        }
 
         try {
             $stripe = new StripeClient(env("STRIPE_SECRET"));
             $sub = $stripe->subscriptions->retrieve($session->subscription);
-            return Carbon::createFromTimestamp($sub->current_period_end)->toDateTimeString();
+
+            // Safety check for current_period_end
+            if (isset($sub->current_period_end) && !empty($sub->current_period_end)) {
+                return Carbon::createFromTimestamp($sub->current_period_end)->toDateTimeString();
+            }
+
+            return now()->addMonth()->toDateTimeString();
         } catch (\Exception $e) {
-            return null;
+            Log::error("Stripe Subscription Retrieve Error: " . $e->getMessage());
+            return now()->addMonth()->toDateTimeString();
         }
     }
 }

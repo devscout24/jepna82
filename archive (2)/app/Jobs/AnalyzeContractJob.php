@@ -94,10 +94,9 @@ class AnalyzeContractJob implements ShouldQueue
             ]);
 
             // Deduct credits ONLY after everything is successfully saved
-            if (in_array($this->contract->billing_mode, ['subscription', 'bulk'])) {
+            if (in_array($this->contract->billing_mode, ['subscription', 'bulk', 'credit', 'one_time', 'one_time_basic', 'one_time_pro'])) {
                 $this->deductCredits();
             }
-
         } catch (Exception $e) {
             Log::error("Contract Analysis Job Failed: " . $e->getMessage());
             $this->contract->update(['status' => 'failed']);
