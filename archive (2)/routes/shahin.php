@@ -75,10 +75,5 @@ Route::middleware('auth:api')->group(function () {
 });
 
 
-Route::controller(UserSubscriptionController::class)->group(function () {
-    Route::post('subscription/webhook', 'handlesubscription');
-});
-
-Route::controller(BulkPackageBuyController::class)->group(function () {
-    Route::post('bulk/webhook', 'handleBulkPackageWebhook');
-});
+Route::post('subscription/webhook', [UserSubscriptionController::class, 'handlesubscription']);
+//

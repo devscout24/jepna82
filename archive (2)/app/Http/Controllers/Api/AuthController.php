@@ -30,7 +30,11 @@ class AuthController extends Controller
             'name' => ['nullable', 'string', 'max:255'],
             'username' => ['nullable', 'string', 'max:255', 'unique:users,username'],
             'email' => [
-                'required', 'string', 'email', 'unique:users,email', 'indisposable',
+                'required',
+                'string',
+                'email',
+                'unique:users,email',
+                'indisposable',
                 function ($attribute, $value, $fail) {
                     $blockedDomains = ['bezill.com', 'yopmail.com', 'tempmail.com', 'mailinator.com'];
                     $domain = substr(strrchr($value, "@"), 1);
@@ -54,7 +58,7 @@ class AuthController extends Controller
 
 
         // Build a custom verification URL pointing to our API endpoint
-        $verificationUrl = url('/api/user/verify-email/' . $user->id . '/' . sha1($user->email));
+        $verificationUrl = route('api.verification.verify', ['id' => $user->id, 'hash' => sha1($user->email)]);
 
         // Send custom verification email with our API link
         \Illuminate\Support\Facades\Mail::raw(
@@ -142,7 +146,16 @@ class AuthController extends Controller
             return response()->json(['status' => false, 'message' => 'Email already verified.']);
         }
 
-        $user->sendEmailVerificationNotification();
+        // Build a custom verification URL pointing to our API endpoint
+        $verificationUrl = route('api.verification.verify', ['id' => $user->id, 'hash' => sha1($user->email)]);
+
+        // Send custom verification email with our API link
+        \Illuminate\Support\Facades\Mail::raw(
+            "Please verify your email by clicking the link below:\n\n" . $verificationUrl . "\n\nThis link will verify your account and redirect you to the login page.",
+            function ($message) use ($user) {
+                $message->to($user->email)->subject('Verify Your Email Address');
+            }
+        );
 
         return response()->json(['status' => true, 'message' => 'Verification link sent to your email.']);
     }
@@ -155,7 +168,7 @@ class AuthController extends Controller
         ]);
     }
 
-   public function logout()
+    public function logout()
     {
         try {
             // Get token from request
@@ -201,7 +214,7 @@ class AuthController extends Controller
 
 
 
- public function forgetPassword(Request $request)
+    public function forgetPassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required'
@@ -349,7 +362,7 @@ class AuthController extends Controller
     }
 
 
- public function changePassword(Request $request)
+    public function changePassword(Request $request)
     {
 
         $validator = Validator::make($request->all(), [
@@ -472,7 +485,7 @@ class AuthController extends Controller
     }
 
 
-   public function updateProfile(Request $request)
+    public function updateProfile(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
@@ -491,10 +504,9 @@ class AuthController extends Controller
             if ($request->hasFile('profile_image')) {
                 $image = $request->file('profile_image');
                 $imageName = time() . '_' . $image->getClientOriginalName();
-                $path="uploads/profile_images/";
+                $path = "uploads/profile_images/";
                 $image->move(public_path($path), $imageName);
-                $user->profile_image = $path.$imageName;
-
+                $user->profile_image = $path . $imageName;
             }
 
             if ($request->name) {
@@ -525,5 +537,4 @@ class AuthController extends Controller
             return $this->error([], $e->getMessage());
         }
     }
-
 }

@@ -31,7 +31,7 @@
                         <div class="form-group mb-3">
                             <label for="stripe_key" class="form-label">Stripe Public Key (STRIPE_KEY)</label>
                             <input type="text" name="stripe_key" id="stripe_key" class="form-control @error('stripe_key') is-invalid @enderror"
-                                value="{{ env('STRIPE_KEY') }}" placeholder="Enter Stripe Public Key" required>
+                                value="{{ config('services.stripe.key') }}" placeholder="Enter Stripe Public Key" required>
                             @error('stripe_key')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -40,7 +40,7 @@
                         <div class="form-group mb-3">
                             <label for="stripe_secret" class="form-label">Stripe Secret Key (STRIPE_SECRET)</label>
                             <input type="text" name="stripe_secret" id="stripe_secret" class="form-control @error('stripe_secret') is-invalid @enderror"
-                                value="{{ env('STRIPE_SECRET') }}" placeholder="Enter Stripe Secret Key" required>
+                                value="{{ config('services.stripe.secret') }}" placeholder="Enter Stripe Secret Key" required>
                             @error('stripe_secret')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -49,7 +49,7 @@
                         <div class="form-group mb-3">
                             <label for="stripe_webhook_secret_subscription" class="form-label">Stripe Webhook Secret (Subscription)</label>
                             <input type="text" name="stripe_webhook_secret_subscription" id="stripe_webhook_secret_subscription" class="form-control @error('stripe_webhook_secret_subscription') is-invalid @enderror"
-                                value="{{ env('STRIPE_WEBHOOK_SECRET_SUBSCRIPTION') }}" placeholder="Enter Stripe Webhook Secret for Subscriptions">
+                                value="{{ config('services.stripe.webhook_secret_subscription') }}" placeholder="Enter Stripe Webhook Secret for Subscriptions">
                             @error('stripe_webhook_secret_subscription')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
@@ -58,7 +58,7 @@
                         <div class="form-group mb-3">
                             <label for="stripe_webhook_secret_bulk" class="form-label">Stripe Webhook Secret (Bulk/One-time)</label>
                             <input type="text" name="stripe_webhook_secret_bulk" id="stripe_webhook_secret_bulk" class="form-control @error('stripe_webhook_secret_bulk') is-invalid @enderror"
-                                value="{{ env('STRIPE_WEBHOOK_SECRET_BULK') }}" placeholder="Enter Stripe Webhook Secret for Bulk/One-time">
+                                value="{{ config('services.stripe.webhook_secret_bulk') }}" placeholder="Enter Stripe Webhook Secret for Bulk/One-time">
                             @error('stripe_webhook_secret_bulk')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror

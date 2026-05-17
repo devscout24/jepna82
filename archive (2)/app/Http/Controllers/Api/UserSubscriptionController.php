@@ -7,6 +7,10 @@ use App\Models\PackageAndSubscription;
 use App\Models\UserSubscription;
 use App\Models\UserWalet;
 use App\Models\User;
+use App\Models\Payments;
+use App\Models\CreditPackPurchase;
+use App\Models\Contract;
+use App\Jobs\AnalyzeContractJob;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -120,9 +124,7 @@ class UserSubscriptionController extends Controller
                 $this->handleCheckoutSessionCompleted($event->data->object);
                 break;
 
-            case 'checkout.session.completed':
-                $this->handleCheckoutSessionCompleted($event->data->object);
-                break;
+
 
             case 'customer.subscription.updated':
                 $this->handleSubscriptionUpdated($event->data->object);
@@ -153,37 +155,111 @@ class UserSubscriptionController extends Controller
     protected function handleCheckoutSessionCompleted($session)
     {
         $user = User::find($session->metadata->user_id);
-        $package = PackageAndSubscription::find($session->metadata->package_id);
-        $type = $session->metadata->type;
-
-        if (!$user || !$package) {
-            Log::warning("Stripe Hook: User or Package not found for session " . $session->id);
+        if (!$user) {
+            Log::warning("Stripe Hook: User not found for session " . $session->id);
             return;
         }
 
-        $subscription = UserSubscription::create([
-            'user_id' => $user->id,
-            'package_id' => $package->id,
-            'stripe_subscription_id' => $session->subscription ?? null,
-            'stripe_customer_id' => $session->customer,
-            'stripe_invoice_id' => $session->invoice ?? null,
-            'amount' => $session->amount_total / 100,
-            'currency' => strtoupper($session->currency ?? "usd"),
-            'start_date' => now(),
-            'end_date' => $this->calculateNextBillingDate($session),
-            'next_billing_date' => $this->calculateNextBillingDate($session),
-            'credits_allocated' => $package->page_limit,
-            'credits_remaining' => $package->page_limit,
-            'payment_status' => 'paid',
-            'subscription_status' => 'active',
-        ]);
+        $type = $session->metadata->type;
 
-        $user->updateBalance($package->page_limit, 'subscription_purchase', $package->id, $subscription->id);
-
+        // 1. Recurring Subscription OR Normal Plan (page_limit or scan_credits)
         if ($type === 'subscription') {
+            $package = PackageAndSubscription::find($session->metadata->package_id);
+            if (!$package) return;
+
+            // page_limit (billing cycle limit) orthoba scan_credits (monthly renewal credits) theke credits nite hobe
+            $initialCredits = $package->page_limit > 0 ? $package->page_limit : ($package->scan_credits ?? 0);
+
+            $subscription = UserSubscription::create([
+                'user_id' => $user->id,
+                'package_id' => $package->id,
+                'stripe_subscription_id' => $session->subscription ?? null,
+                'stripe_customer_id' => $session->customer,
+                'stripe_invoice_id' => $session->invoice ?? null,
+                'amount' => $session->amount_total / 100,
+                'currency' => strtoupper($session->currency ?? "usd"),
+                'start_date' => now(),
+                'end_date' => $this->calculateNextBillingDate($session),
+                'next_billing_date' => $this->calculateNextBillingDate($session),
+                'credits_allocated' => $initialCredits,
+                'credits_remaining' => $initialCredits,
+                'payment_status' => 'paid',
+                'subscription_status' => 'active',
+            ]);
+
+            $user->updateBalance($initialCredits, 'subscription_purchase', $package->id, $subscription->id);
             Mail::to($user->email)->send(new SubscriptionWelcomeMail($user, $package));
-        } else {
-            Mail::to($user->email)->send(new CreditPackPurchaseMail($user, $package));
+
+            // 2. Bulk Credit Pack
+        } elseif ($type === 'bulk') {
+            $bulkPackageId = $session->metadata->bulk_package_id ?? $session->metadata->package_id;
+            $bulkPackage = PackageAndSubscription::find($bulkPackageId);
+            if (!$bulkPackage) {
+                Log::warning("Stripe Hook: Bulk package not found for session " . $session->id);
+                return;
+            }
+
+            $bulkCredits = $bulkPackage->page_limit > 0 ? $bulkPackage->page_limit : ($bulkPackage->scan_credits ?? 0);
+
+            $creditPack = CreditPackPurchase::create([
+                'user_id' => $user->id,
+                'package_id' => $bulkPackage->id,
+                'credits_purchased' => $bulkCredits,
+                'credits_remaining' => $bulkCredits,
+                'status' => 'active',
+                'stripe_payment_intent_id' => $session->payment_intent ?? null,
+            ]);
+
+            Payments::create([
+                'user_id' => $user->id,
+                'package_id' => $bulkPackage->id,
+                'credit_pack_id' => $creditPack->id,
+                'amount' => $session->amount_total / 100,
+                'currency' => strtoupper($session->currency ?? "usd"),
+                'credits_purchased' => $bulkCredits,
+                'payment_method' => 'stripe',
+                'stripe_payment_intent_id' => $session->payment_intent ?? null,
+                'stripe_customer_id' => $session->customer,
+                'status' => 'success',
+                'payment_type' => 'bulk',
+                'raw_response' => json_encode($session),
+            ]);
+
+            $user->updateBalance($bulkCredits, 'bulk_purchase', $bulkPackage->id);
+            $user->refresh(); // Refresh user model to get the updated wallet balance from DB
+
+            Mail::to($user->email)->send(new CreditPackPurchaseMail($user, $bulkPackage));
+
+            // 3. One-time Analysis Unlock
+        } elseif ($type === 'one_time') {
+            $package = PackageAndSubscription::find($session->metadata->package_id);
+            $contract = Contract::find($session->metadata->contract_id);
+            if (!$package || !$contract) return;
+
+            $mode = $package->package_type === 'one_time_pro' ? 'pro' : 'basic';
+
+            Payments::create([
+                'user_id' => $user->id,
+                'package_id' => $package->id,
+                'amount' => $session->amount_total / 100,
+                'currency' => strtoupper($session->currency ?? "usd"),
+                'payment_method' => 'stripe',
+                'stripe_payment_intent_id' => $session->payment_intent ?? null,
+                'stripe_customer_id' => $session->customer,
+                'status' => 'success',
+                'payment_type' => 'one_time',
+                'raw_response' => json_encode($session),
+            ]);
+
+            $contract->update([
+                'is_full_unlocked' => 1,
+                'access_level' => 'unlocked',
+                'full_unlocked_at' => now(),
+                'scan_type' => $mode,
+                'billing_mode' => 'one_time',
+            ]);
+
+            AnalyzeContractJob::dispatch($contract, $mode);
         }
     }
 
@@ -202,11 +278,15 @@ class UserSubscriptionController extends Controller
                 $subscription->update([
                     'package_id' => $newPackage->id,
                     'credits_allocated' => $newPackage->page_limit,
-                    'credits_remaining' => $subscription->credits_remaining + $newPackage->page_limit,
+                    'credits_remaining' => $newPackage->page_limit,
                     'next_billing_date' => Carbon::createFromTimestamp($stripeSubscription->current_period_end)->toDateTimeString(),
                 ]);
 
-                $subscription->user->updateBalance($newPackage->page_limit, 'subscription_upgrade', $newPackage->id, $subscription->id);
+                // user relationship load kora thakte hobe ba direct user model call korte hobe
+                $user = User::find($subscription->user_id);
+                if ($user) {
+                    $user->updateBalance($newPackage->page_limit, 'subscription_upgrade', $newPackage->id, $subscription->id);
+                }
 
                 Log::info("Subscription upgraded for user: " . $subscription->user_id);
             }

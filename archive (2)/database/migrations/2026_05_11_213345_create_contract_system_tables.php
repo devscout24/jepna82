@@ -24,7 +24,7 @@ return new class extends Migration
             $table->integer('page_count')->default(1);
             $table->enum('file_type', ['pdf', 'image', 'docx', 'txt'])->nullable();
             $table->enum('scan_type', ['free_preview', 'full'])->default('full');
-            $table->enum('billing_mode', ['free', 'subscription', 'bulk', 'one_time', 'one_time_basic', 'one_time_pro'])->nullable();
+            $table->enum('billing_mode', ['free', 'subscription', 'bulk', 'one_time', 'one_time_basic', 'one_time_pro', 'credit'])->nullable();
             $table->decimal('amount_charged', 10, 2)->default(0);
             $table->integer('credit_used')->default(0);
             $table->decimal('per_page_rate', 10, 4)->nullable();
@@ -109,9 +109,15 @@ return new class extends Migration
             $table->foreignId('payment_id')->nullable()->constrained('payments');
             $table->enum('type', ['credit', 'debit', 'refund', 'adjustment']);
             $table->enum('source', [
-                'subscription_purchase', 'subscription_renewal', 'bulk_purchase',
-                'one_time_purchase', 'free_preview', 'admin_grant',
-                'scan_usage', 'refund', 'expiry_deduction'
+                'subscription_purchase',
+                'subscription_renewal',
+                'bulk_purchase',
+                'one_time_purchase',
+                'free_preview',
+                'admin_grant',
+                'scan_usage',
+                'refund',
+                'expiry_deduction'
             ]);
             $table->integer('credits');
             $table->integer('previous_balance');

@@ -73,7 +73,7 @@ class PackageAndSubscriptionController extends Controller
             $data['features'] = $request->features ? explode("\n", str_replace("\r", "", $request->features)) : [];
 
             if ($request->package_type === 'subscription' && !empty($request->billing_cycle)) {
-                $stripe = new \Stripe\StripeClient(env('STRIPE_SECRET'));
+                $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
 
 
                 $stripeProduct = $stripe->products->create([

@@ -44,6 +44,8 @@ class StripeSettingController extends Controller
 
             File::put($envPath, $envContent);
 
+            \Illuminate\Support\Facades\Artisan::call('config:clear');
+
             return back()->with('success', 'Stripe settings updated successfully!');
         } catch (Exception $e) {
             return back()->with('error', 'Failed to update Stripe settings: ' . $e->getMessage());
